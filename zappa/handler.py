@@ -13,6 +13,8 @@ import tarfile
 
 from builtins import str
 from werkzeug.wrappers import Response
+from mangum import Mangum
+
 
 # This file may be copied into a project's root,
 # so handle both scenarios.
@@ -145,6 +147,12 @@ class LambdaHandler:
                 # Get the Django WSGI app from our extension
                 wsgi_app_function = get_django_wsgi(self.settings.DJANGO_SETTINGS)
                 self.trailing_slash = True
+
+            # added for zappa mangum integration
+            # https://github.com/delijati/Zappa/commit/6dd2b8b41baaa17192c4648068cf825c881b42fc
+            if not self.settings.ASGI:
+                self.wsgi_app = ZappaWSGIMiddleware(wsgi_app_function)
+            self.wsgi_app = wsgi_app_function
 
             self.wsgi_app = ZappaWSGIMiddleware(wsgi_app_function)
 
@@ -478,7 +486,8 @@ class LambdaHandler:
             time_start = datetime.datetime.now()
 
             # This is a normal HTTP request
-            if event.get('httpMethod', None):
+            # https://github.com/delijati/Zappa/commit/6dd2b8b41baaa17192c4648068cf825c881b42fc
+            if event.get('httpMethod', None) and not settings.ASGI:
                 script_name = ''
                 is_elb_context = False
                 headers = merge_headers(event)
@@ -576,6 +585,9 @@ class LambdaHandler:
                     common_log(environ, response, response_time=response_time_ms)
 
                     return zappa_returndict
+                # https://github.com/delijati/Zappa/commit/6dd2b8b41baaa17192c4648068cf825c881b42fc
+                elif event.get('httpMethod', None) and settings.ASGI:
+                    return Mangum(self.wsgi_app)(event, context)
         except Exception as e:  # pragma: no cover
             # Print statements are visible in the logs either way
             print(e)
