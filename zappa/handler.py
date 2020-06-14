@@ -585,9 +585,10 @@ class LambdaHandler:
                     common_log(environ, response, response_time=response_time_ms)
 
                     return zappa_returndict
+
+            elif event.get('httpMethod', None) and settings.ASGI:
                 # https://github.com/delijati/Zappa/commit/6dd2b8b41baaa17192c4648068cf825c881b42fc
-                elif event.get('httpMethod', None) and settings.ASGI:
-                    return Mangum(self.wsgi_app)(event, context)
+                return Mangum(self.wsgi_app)(event, context)
         except Exception as e:  # pragma: no cover
             # Print statements are visible in the logs either way
             print(e)
