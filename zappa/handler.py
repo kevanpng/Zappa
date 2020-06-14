@@ -154,7 +154,6 @@ class LambdaHandler:
                 self.wsgi_app = ZappaWSGIMiddleware(wsgi_app_function)
             self.wsgi_app = wsgi_app_function
 
-            self.wsgi_app = ZappaWSGIMiddleware(wsgi_app_function)
 
     def load_remote_project_archive(self, project_zip_path):
         """
